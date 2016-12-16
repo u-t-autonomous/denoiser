@@ -2,9 +2,7 @@
 <launch>
   <arg name="steps" /> 
   <arg name="trials" />
-  <arg name="name" />
-  <arg name="err" />
-  <arg name="bp" />
+  <arg name="name" /> 
 <group ns="denoising">
 
   <node name="env_node" pkg="denoising" type="env_node.py" output="screen">
@@ -16,9 +14,12 @@
     <param name="steps" value="$(arg steps)"/>
     <param name="trials" value="$(arg trials)"/>
     <param name="name" value="$(arg name)"/>
-    <param name="err" value="$(arg err)"/>
-    <param name="bp" value="$(arg bp)"/>
   </node>
+
+  <node name="key_input" pkg="denoising" type="key_input.py" output="screen">
+  	<param name="steps" value="$(arg steps)"/>
+  </node>
+
 
 </group>
 </launch>

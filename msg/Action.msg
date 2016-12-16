@@ -1,0 +1,2 @@
+string rand
+string true

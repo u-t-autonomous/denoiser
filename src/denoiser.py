@@ -4,6 +4,8 @@ import sys
 from itertools import combinations
 from random import choice
 from math import log
+from random import shuffle
+import itertools
 
 class Denoiser:
     
@@ -33,7 +35,7 @@ class Denoiser:
     def neighbors_map(self, evals, alpha, beta):
         neighbors = {}
         for i, ev in enumerate(evals):
-            if i == 0 and i != len(evals)-1:
+            if i == 0 and len(evals) != 1:
                 if evals[i+1] not in [alpha, beta]:
                     neighbors[i] = [evals[i+1]]
                 else:
@@ -70,12 +72,12 @@ class Denoiser:
                         g.add_edge(node[0], node[0]-1, n_link, n_link)
         return g, indices
 
-    def make_graph_expand(self, new_evals, original_eval, label):
+    def make_graph_expand(self, new_evals, original_eval, alpha):
         indices = []
         g = maxflow.Graph[float](200, 200)
         node_next = False
         for i, ev in enumerate(new_evals):
-            t_alpha = self.D(original_eval[i], label) + 1     # adding this term ( + 1) makes a difference      
+            t_alpha = self.D(original_eval[i], alpha) #+ 1     # adding this term ( + 1) makes a difference      
             if node_next == False:
                 node = g.add_nodes(1)
                 
@@ -85,10 +87,10 @@ class Denoiser:
                 
             indices.append(node[0])
             
-            if ev == label:
-                t_not_alpha = 10
+            if ev == alpha:
+                t_not_alpha = 100000000
             else:
-                t_not_alpha = self.D(new_evals[i], label)
+                t_not_alpha = self.D(new_evals[i], original_eval[i])
                 
             g.add_tedge(node[0], t_alpha, t_not_alpha)
  
@@ -98,13 +100,13 @@ class Denoiser:
                     node_next = g.add_nodes(1)
                     t_a_not_alpha = self.V(ev, new_evals[i+1])
                     g.add_tedge(node_a[0], 0, t_a_not_alpha)
-                    e_p_a = self.V(ev, label)
+                    e_p_a = self.V(ev, alpha)
                     g.add_edge(node[0], node_a[0], e_p_a, e_p_a)
-                    e_a_q = self.V(new_evals[i+1], label)
+                    e_a_q = self.V(new_evals[i+1], alpha)
                     g.add_edge(node_next[0], node_a[0], e_a_q, e_a_q)
                 else:
                     node_next = g.add_nodes(1)
-                    e_p_q = self.V(ev, label)
+                    e_p_q = self.V(ev, alpha)
                     g.add_edge(node_next[0], node[0], e_p_q, e_p_q)
                     
         return g, indices
@@ -123,10 +125,11 @@ class Denoiser:
                 f[i] = label
         return f    
     
-    def swap(self, evals):
+    def swap(self, evals, pairs = None):
         f = evals
         e_value = self.E(evals, evals)
-        pairs = list(combinations(self.labels, 2))
+        if pairs == None:
+            pairs = list(combinations(self.labels, 2))
         success = True
         while success:
             success = False
@@ -149,7 +152,7 @@ class Denoiser:
             success = False
             for label in self.labels:
                 graph, indices = self.make_graph_expand(f, evals, label)
-                plot_graph_3d(graph, (10,10,10))
+#                 plot_graph_3d(graph, (10,10,10))
                 graph.maxflow()
                 new_evals = self.construct_evals_expand(f,graph, indices, label)
                 new_e_value = self.E(evals, new_evals)
