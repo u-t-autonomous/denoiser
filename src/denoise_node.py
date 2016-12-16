@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from std_msgs.msg import String
+from std_msgs.msg import String, Int32
 from denoising.msg import Action, Sim
 import pygame
 import rospy
@@ -8,6 +8,7 @@ import copy
 from action_selection import init_k, det_all_k, init_probs, update_all_P
 import pandas as pd
 from numpy.random import choice
+
 
 def randomize_input(user_input, prob = 0.7):
     action_set = set(['a','s','d'])
@@ -24,6 +25,26 @@ def determine_action(current_state, target_state):
         return 'd'
     if current_state == target_state:
         return 's' 
+
+def determine_action_clf():
+    global clf_list
+    while len(clf_list) < 5:
+        pass
+    action = choice(clf_list)
+    clf_list = []
+    return action
+
+def label_action(label):
+    if label == 2:
+        return 'a' 
+    if label == 3:
+        return 's' 
+    if label == 4:
+        return 'd'
+
+def clf_callback(msg):
+    global clf_list
+    clf_list.append(msg.data)
 
 def callback(msg):
     global err, log, time_steps, x_size, y_size, target, table, steps, lock_80, lock_90, lock_95, trial, trials, name, pub, new_state, target_state
@@ -56,8 +77,9 @@ def callback(msg):
     current_state = msg.new_state
     target_state = msg.target_state
     key_input = determine_action(current_state, target_state)
+    clf_input = determine_action_clf()
     if key_input in action_set:
-        action.rand = randomize_input(key_input, 1 - err)
+        action.rand = label_action(clf_input)
         if action.rand == 'a':
             action.rand = 'west'
         elif action.rand == 'd':
@@ -71,6 +93,7 @@ def callback(msg):
         elif key_input == 's':
             key_input = 'stay'
         action.true = key_input
+
     probs = 0
     log.append([time_steps, state, action_log, probs])
     log = sorted(log, key=lambda eval: eval[0])
@@ -113,14 +136,16 @@ def callback(msg):
 def main():
     global time_steps, steps, trials, name, pub
     trials = rospy.get_param('~trials')
-    subs = rospy.Subscriber('log', Sim, callback)
-    pub = rospy.Publisher('cmd', Action, queue_size=10)
     steps = rospy.get_param('~steps')
     name = rospy.get_param('~name')
+    subs = rospy.Subscriber('log', Sim, callback)
+    subs = rospy.Subscriber('classification', Int32, clf_callback)
+    pub = rospy.Publisher('cmd', Action, queue_size=10)
     while not rospy.is_shutdown():
         pass
 
 if __name__ == '__main__':
+    clf_list = []
     trial = 1
     trials = 0
     lock_80 = False
