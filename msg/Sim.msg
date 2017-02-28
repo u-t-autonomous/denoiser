@@ -1,6 +1,9 @@
-uint32 state
+uint32 xstate
+uint32 ystate
 uint32 cmd
-uint32 target_state
+uint32 target_xstate
+uint32 target_ystate
 uint32 time_steps
-uint32 new_state
+uint32 new_xstate
+uint32 new_ystate
 float32 error

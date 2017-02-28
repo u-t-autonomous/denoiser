@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="steps" /> 
+  <arg name="trials" />
+  <arg name="name" />
+  <arg name="err" />
+<group ns="denoising">
+  <node name="run_node" pkg="denoising" type="run_node.py" output="screen">
+    <param name="steps" value="$(arg steps)"/>
+    <param name="trials" value="$(arg trials)"/>
+    <param name="name" value="$(arg name)"/>
+    <param name="err" value="$(arg err)"/>
+  </node>
+  <node name="env_node" pkg="denoising" type="env_node.py" output="screen">
+  	<param name="steps" value="$(arg steps)"/>
+	<param name="trials" value="$(arg trials)"/>
+  </node>
+
+
+
+</group>
+</launch>

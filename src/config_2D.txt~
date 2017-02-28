@@ -1,0 +1,4 @@
+HEIGHT: 10
+WIDTH: 10
+BLOCK: agent 8 0
+BLOCK: fixed_obstacle 3 3

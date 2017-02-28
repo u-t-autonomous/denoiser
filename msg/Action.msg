@@ -1,2 +1,3 @@
 string rand
 string true
+bool done

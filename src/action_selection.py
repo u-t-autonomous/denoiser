@@ -80,25 +80,89 @@ def det_all_k(s,states,actions):
     P = s
 
     for i in range(len(states)):
+        #west
         if actions[i] == 0:
             for key in P:
                 if key[0] < states[i]:
                     P[key].append(kh)
                 elif key[0] >= states[i]:
                     P[key].append(kl)
+        #east
         elif actions[i] == 2:
             for key in P:
                 if key[0] > states[i]:
                     P[key].append(kh)
                 elif key[0] <= states[i]:
                     P[key].append(kl)
+        #stay
         elif actions[i] == 1:
             for key in P:
                 if key[0] == states[i]:
                     P[key].append(kh)
                 else:
                     P[key].append(kl)
+        #north
+        elif actions[i] == 3:
+            for key in P:
+                if key[0] == states[i]:
+                    P[key].append(kh)
+                else:
+                    P[key].append(kl)
+        #south
+        elif actions[i] == 4:
+            for key in P:
+                if key[0] == states[i]:
+                    P[key].append(kh)
+                else:
+                    P[key].append(kl)
+
     return P
+
+def det_all_k_2D(s,xstates,ystates,actions):
+    kl = 1
+    kh = 1.5
+    ka = (kl+kh)/2.
+    P = s
+
+    for i in range(len(xstates)):
+        #west
+        if actions[i] == 0:
+            for key in P:
+                if key[0] < xstates[i]:
+                    P[key].append(kh)
+                else:
+                    P[key].append(kl)
+        #east
+        elif actions[i] == 2:
+            for key in P:
+                if key[0] > xstates[i]:
+                    P[key].append(kh)
+                else:
+                    P[key].append(kl)
+        #stay
+        elif actions[i] == 1:
+            for key in P:
+                if key[0] == xstates[i] and key[1] == ystates[i]:
+                    P[key].append(kh)
+                else:
+                    P[key].append(kl)
+        #north
+        elif actions[i] == 3:
+            for key in P:
+                if key[1] > ystates[i]:
+                    P[key].append(kh)
+                else:
+                    P[key].append(kl)
+        #south
+        elif actions[i] == 4:
+            for key in P:
+                if key[1] < ystates[i]:
+                    P[key].append(kh)
+                else:
+                    P[key].append(kl)
+
+    return P
+
 
 def update_P(P,K):
     norm = 0

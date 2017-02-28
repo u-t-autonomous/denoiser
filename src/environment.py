@@ -7,11 +7,7 @@ import bisect
 
 class Simulation:
 
-
-
-    
-    def __init__(self, configFile):
-
+    def __init__(self, configFile, viz=True):
 
         self.grid = []
         self.agent_blocks = []
@@ -26,9 +22,11 @@ class Simulation:
         self.WIDTH = 0
         self.MARGIN = 2
         self.time_step = 0
-        self.screen = pygame.display.set_mode((0,0))
-        self.clock = pygame.time.Clock()
-        pygame.display.set_caption("Environment")
+        self.viz = viz
+        if self.viz:
+            self.screen = pygame.display.set_mode((0,0))
+            self.clock = pygame.time.Clock()
+            pygame.display.set_caption("Environment")
         # recognizer = speech_recognition.Recognizer()
         self.matrix_active = False
         self.slip_active = False
@@ -64,7 +62,8 @@ class Simulation:
     
         self.WINDOW_SIZE[0] = int(30*self.WIDTH+2)
         self.WINDOW_SIZE[1] = int(30*self.HEIGHT+2)
-        self.screen = pygame.display.set_mode(self.WINDOW_SIZE)
+        if self.viz:
+            self.screen = pygame.display.set_mode(self.WINDOW_SIZE)
 
         for i in self.agent_blocks:
             self.agent_percentages.append({})
@@ -83,8 +82,8 @@ class Simulation:
 
 
         #self.import_matrix_file(matrixFile)
-
-        pygame.init()
+        if self.viz:
+            pygame.init()
 
         # self.recognizer.pause_threshold = 0.5
 
@@ -125,19 +124,21 @@ class Simulation:
                 self.agent_blocks[number].move_east() 
 
     def draw(self):
+        if self.viz:
+            for column in range(self.WIDTH):
+                for row in range(self.HEIGHT):
+                    self.grid[column][row].draw(self.screen, column, row, self.MARGIN)
 
-        for column in range(self.WIDTH):
-            for row in range(self.HEIGHT):
-                self.grid[column][row].draw(self.screen, column, row, self.MARGIN)
 
-
-        for agent in self.agent_blocks:
-            agent.draw(self.screen, agent.column, agent.row, self.MARGIN)
-                                                 
-        for obstacle in self.moving_obstacles:
-            obstacle.draw(self.screen, obstacle.column, obstacle.row, self.MARGIN)
-        
-        pygame.display.flip()
+            for agent in self.agent_blocks:
+                agent.draw(self.screen, agent.column, agent.row, self.MARGIN)
+                                                     
+            for obstacle in self.moving_obstacles:
+                obstacle.draw(self.screen, obstacle.column, obstacle.row, self.MARGIN)
+            
+            pygame.display.update()
+        else:
+            pass
 
     def get_state(self):
 
@@ -250,9 +251,10 @@ class Simulation:
         self.move_agent(index, action)
 
     def handle_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return True
+        if self.viz:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return True
 
         for agent in self.agent_blocks:
             for obstacle in self.moving_obstacles:
@@ -391,7 +393,8 @@ class Simulation:
 
     def move(self, movement):
         self.move_obstacles()
-        self.draw()
+        if self.viz:
+            self.draw()
 
 	if (self.handle_events()): 
             return True, 0
@@ -421,8 +424,8 @@ class Simulation:
                     self.move_agent(agent, self.get_voice())
                 else:
                     self.move_agent(agent, movement[agent])
-
-        self.draw()
+        if self.viz:
+            self.draw()
 
         if (self.step_forward()):
             return True, 0
@@ -430,7 +433,7 @@ class Simulation:
         return False, self.get_state()
 
     def quit(self):
-        pygame.quit()
+        #pygame.quit()
         grid = []
         agent_blocks = []
         moving_obstacles = []
@@ -444,10 +447,11 @@ class Simulation:
         WIDTH = 0
         MARGIN = 2
         time_step = 0
-        screen = pygame.display.set_mode((0,0))
-        clock = pygame.time.Clock()
-        pygame.display.set_caption("Environment")
-        # recognizer = speech_recognition.Recognizer()
+        if self.viz:
+            screen = pygame.display.set_mode((0,0))
+            clock = pygame.time.Clock()
+            pygame.display.set_caption("Environment")
+        #recognizer = speech_recognition.Recognizer()
         matrix_active = False
         slip_active = False
 
@@ -455,7 +459,7 @@ class Simulation:
         
 
 
-class Block():
+class Block(object):
     color = (0,0,0)
     block_size = 30
 

@@ -137,7 +137,8 @@ class Denoiser:
                 graph, indices = self.make_graph_swap(f, evals, pair[0], pair[1])
                 graph.maxflow()
                 new_evals = self.construct_evals_swap(f,graph, indices, pair[0], pair[1])
-                new_e_value = self.E(evals, new_evals)
+                #new_e_value = self.E(evals, new_evals)
+                new_e_value = self.E(f, new_evals)
                 if new_e_value < e_value:
                     f = new_evals
                     e_value = new_e_value
