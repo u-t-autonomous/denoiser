@@ -15,10 +15,12 @@ class Denoiser:
         self.labels = labels
 
     def D(self, evaluation, label):
-        if evaluation == label:
-            return -log(1 - self.param)
-        else:
-            return -log(self.param)
+        # if evaluation == label:
+        #     return -log(1 - self.param[(evaluation,label)])
+        # else:
+        #     return -log(self.param[(evaluation,label)])
+        return -log(self.param[(evaluation,label)])
+
 
     def V(self, evaluation, label):
         if evaluation == label:
@@ -157,6 +159,7 @@ class Denoiser:
                 graph.maxflow()
                 new_evals = self.construct_evals_expand(f,graph, indices, label)
                 new_e_value = self.E(evals, new_evals)
+                #new_e_value = self.E(f, new_evals)
                 if new_e_value < e_value:
                     f = new_evals
                     e_value = new_e_value

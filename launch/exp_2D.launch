@@ -13,9 +13,9 @@
     <param name="err" value="$(arg err)"/>
     <param name="bp" value="$(arg bp)"/>
   </node>
-  <node name="env_node" pkg="denoising" type="env_node.py" output="screen">
+  <node name="env_node" pkg="denoising" type="env_node_2D.py" output="screen">
   	<param name="steps" value="$(arg steps)"/>
-	<param name="trials" value="$(arg trials)"/>
+	  <param name="trials" value="$(arg trials)"/>
   </node>
 
 

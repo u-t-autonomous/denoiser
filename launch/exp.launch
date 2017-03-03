@@ -4,15 +4,19 @@
   <arg name="name" />
   <arg name="err" />
   <arg name="bp" />
+  <arg name="steps" />
+  
 <group ns="denoising">
   <node name="denoise_node" pkg="denoising" type="denoise_node.py" output="screen">
     <param name="trials" value="$(arg trials)"/>
     <param name="name" value="$(arg name)"/>
     <param name="err" value="$(arg err)"/>
     <param name="bp" value="$(arg bp)"/>
+    <param name="steps" value="$(arg steps)"/>
   </node>
   <node name="env_node" pkg="denoising" type="env_node.py" output="screen">
 	<param name="trials" value="$(arg trials)"/>
+  <param name="steps" value="$(arg steps)"/>
   </node>
 
 

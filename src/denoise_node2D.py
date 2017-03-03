@@ -62,13 +62,12 @@ def clf_callback(msg):
     clf_list.append(msg.data)
 
 def callback(msg):
-    global action_map, err, log, time_steps, x_size, y_size, target, table, steps, lock_80, lock_90, lock_95, trial, trials, name, pub, new_state, target_state
+    global action_map, err, log, time_steps, x_size, y_size, target, table, steps, lock_80,\
+     lock_90, lock_95, lock_80c, lock_90c, lock_95c, trial, trials, name, pub, new_state, target_state
     time_steps = msg.time_steps
     action_set = set(['a','s','d','w','x'])
     action = Action()    
     errors = msg.error 
-
-
     xstate = msg.xstate
     ystate = msg.ystate
     action_log = msg.cmd
@@ -81,7 +80,7 @@ def callback(msg):
     #clf_input = determine_action_clf()
     if key_input in action_set:
         #action.rand = label_action(clf_input)
-        action.rand = randomize_input(key_input, 1 - err)
+        action.rand = randomize_input(key_input, 1 - .4)
         action.rand = action_map[action.rand]
         key_input = action_map[key_input]
         action.true = key_input
@@ -96,12 +95,17 @@ def callback(msg):
     # log = sorted(log, key=lambda eval: eval[0])
     new_log = copy.deepcopy(log)
     #new_actions = denoiser.expand(actions)
-    new_actions = denoiser.swap(actions)
+    new_actions = denoiser.swap(copy.deepcopy(actions))
     #new_actions = actions
     s = init_k(x_size, y_size)
-    all_K = det_all_k_2D(s, xstates, ystates, new_actions)
+    all_K = det_all_k_2D(s, xstates, ystates, actions)
     p = init_probs(x_size, y_size)
     p = update_all_P(p, all_K)
+
+    sc = init_k(x_size, y_size)
+    all_Kc = det_all_k_2D(sc, xstates, ystates, new_actions)
+    pc = init_probs(x_size, y_size)
+    pc = update_all_P(pc, all_Kc)
     for i in range(len(log)):
         new_log[i][2] = new_actions[i]
     target_log.append(p[target])
@@ -117,9 +121,19 @@ def callback(msg):
         lock_95 = True
         table['ts_95'].append(time_steps)
         table['er_95'].append(errors)
-    if p[target] > .95:
-        action.done = True       
-    if time_steps == steps or action.done:
+    if pc[target] > .80 and not lock_80c:
+        lock_80c = True
+        table['ts_80c'].append(time_steps)
+        table['er_80c'].append(errors)
+    elif pc[target] > .90 and not lock_90c:
+        lock_90c = True
+        table['ts_90c'].append(time_steps)
+        table['er_90c'].append(errors)
+    elif pc[target] > .95 and not lock_95c:
+        lock_95c = True
+        table['ts_95c'].append(time_steps)
+        table['er_95c'].append(errors)      
+    if time_steps == steps:
         log = []
         trial += 1
         table['er'].append(errors)
@@ -139,6 +153,21 @@ def callback(msg):
             table['er_95'].append(None)   
         else:
             lock_95 = False
+        if not lock_80c:
+            table['ts_80c'].append(None)
+            table['er_80c'].append(None)
+        else:
+            lock_80c = False
+        if not lock_90c:
+            table['ts_90c'].append(None)
+            table['er_90c'].append(None)
+        else:
+            lock_90c = False        
+        if not lock_95c:
+            table['ts_95c'].append(None)
+            table['er_95c'].append(None)   
+        else:
+            lock_95c = False
     if trial == trials:
         df = pd.DataFrame(data = table)
         print df
@@ -157,7 +186,7 @@ def main():
     name = rospy.get_param('~name')
     name = name + '_2D'
     subs = rospy.Subscriber('log', Sim, callback)
-    subs = rospy.Subscriber('classification', Int32, clf_callback)
+    subs2 = rospy.Subscriber('classification', Int32, clf_callback)
     pub = rospy.Publisher('cmd', Action, queue_size=10)
     while not rospy.is_shutdown():
         pass
@@ -169,9 +198,19 @@ if __name__ == '__main__':
     lock_80 = False
     lock_90 = False
     lock_95 = False
-    table = {'ts_80': [], 'ts_90': [], 'ts_95': [],'er_80': [], 'er_90': [], 'er_95': [], 'er': []}
+    lock_80c = False
+    lock_90c = False
+    lock_95c = False
+    table = {'ts_80': [], 'ts_90': [], 'ts_95': [],'er_80': [], 'er_90': [], 'er_95': [],\
+     'ts_80c': [], 'ts_90c': [], 'ts_95c': [],'er_80c': [], 'er_90c': [], 'er_95c': [], 'er': []}
     rospy.init_node('subs', anonymous=True)
     err = rospy.get_param('~err')
+    err = \
+    {(0,0):0.6,(0,1):0.1,(0,2):0.1,(0,3):0.1,(0,4):0.1,\
+    (1,0):0.1,(1,1):0.6,(1,2):0.1,(1,3):0.1,(1,4):0.1,\
+    (2,0):0.1,(2,1):0.1,(2,2):0.6,(2,3):0.1,(2,4):0.1,\
+    (3,0):0.1,(3,1):0.1,(3,2):0.1,(3,3):0.6,(3,4):0.1,\
+    (4,0):0.1,(4,1):0.1,(4,2):0.1,(4,3):0.1,(4,4):0.6}
     beta_param = rospy.get_param('~bp')
     denoiser = Denoiser(err, beta_param, [0,1,2,3,4])
     target = (3, 3)

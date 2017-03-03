@@ -9,7 +9,7 @@ from time import sleep
 
 def callback(msg):
     global pubs, time_steps, sim, num_error, trial, trials, done
-    steps = rospy.get_param('~steps')
+    steps = rospy.get_param('steps')
     state = sim.get_state()
     time_steps += 1
     log = Sim()
@@ -46,7 +46,7 @@ def callback(msg):
 def main():
     global pubs, time_steps, sim, num_error, trials, trial, done
     rospy.init_node('subs', anonymous=True)
-    #steps = rospy.get_param('~steps')
+    steps = rospy.get_param('~steps')
     trials = rospy.get_param('~trials')
     subs = rospy.Subscriber('cmd', Action, callback)
     pubs = rospy.Publisher('log', Sim, queue_size=10)
@@ -60,7 +60,7 @@ def main():
     done = False
     while not rospy.is_shutdown():
         #print 'while: ', done
-        steps = rospy.get_param('~steps')
+        #steps = rospy.get_param('steps')
         if time_steps == steps or done:
             done = False
             subs.unregister()
@@ -83,6 +83,7 @@ def main():
 if __name__ == '__main__':
     time_steps = 0
     num_error = 0
-    trial = 1
+    trial = 0
+    #trial = rospy.get_param('~trials')
     sim = Simulation("/home/sahabi/catkin_ws/src/denoising/src/config_2D.txt", viz=False) # absolute path is better
     main()

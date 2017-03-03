@@ -60,20 +60,36 @@ def clf_callback(msg):
 
 def callback(msg):
     global record, err, log, time_steps, x_size, y_size, target, table, steps, lock_80, lock_90,\
-     lock_95, trial, trials, name, pub, new_state, target_state, lock_80c, lock_90c, lock_95c
+     lock_95, trial, trials, name, pub, new_state, target_state, lock_80c, lock_90c, lock_95c, image_table
     time_steps = msg.time_steps
     action_set = set(['a','s','d'])
     action = Action()    
     errors = msg.error
     if time_steps == steps:
+        log = sorted(log, key=lambda eval: eval[0])
+        log = sorted(log, key=lambda eval: eval[1])
+        actions = [x for z,y,x,w in log]
+        states = [y for z,y,x,w in log]
+        # log = sorted(log, key=lambda eval: eval[0])
+        new_log = copy.deepcopy(log)
+        #new_actions = denoiser.expand(copy.deepcopy(actions))
+        new_actions = denoiser.swap(copy.deepcopy(actions))
+        # image_table = {'trial':[],'original_image':[],'denoised_image':[],'states':[]}
+        image_table['trial'].append(trial)
+        image_table['denoised_image'].append(new_actions)
+        image_table['original_image'].append(actions)
+        image_table['states'].append(states)
+        df = pd.DataFrame(data = image_table)
+        df.to_csv(sep = ',', path_or_buf='/home/sahabi/hasan/denoise/data/{}_images.csv'.format(name))        
         log = []
         trial += 1
         record = pd.DataFrame()
         record = record.from_csv('/home/sahabi/hasan/denoise/data/real_runs.csv')
         record = list(record[record['trial']==trial].actions.values)
-        steps = len(record)-1
-        rospy.set_param('steps', len(record)-1)
+        #steps = len(record)-1
+        #rospy.set_param('steps', len(record)-1)
         table['er'].append(errors)
+        table['trial'].append(trial)
         print '{}/{}'.format(trial, trials)
         if not lock_80:
             table['ts_80'].append(None)
@@ -115,9 +131,10 @@ def callback(msg):
     #clf_input = determine_action_clf()
     if key_input in action_set:
         #action.rand = label_action(clf_input)
-        print time_steps
-        print 'steps ',steps
-        action.rand = label_to_action(get_recorded())#randomize_input(key_input, 1 - err)
+        # print time_steps
+        # print 'steps ',steps
+        #action.rand = label_to_action(get_recorded())#
+        action.rand = randomize_input(key_input, 1 - .3)
         if action.rand == 'a':
             action.rand = 'west'
         elif action.rand == 'd':
@@ -138,9 +155,8 @@ def callback(msg):
     log = sorted(log, key=lambda eval: eval[1])
     actions = [x for z,y,x,w in log]
     states = [y for z,y,x,w in log]
-    # log = sorted(log, key=lambda eval: eval[0])
     new_log = copy.deepcopy(log)
-    #new_actions = denoiser.expand(actions)
+    #new_actions = denoiser.expand(copy.deepcopy(actions))
     new_actions = denoiser.swap(copy.deepcopy(actions))
     # print 'original:  ', actions
     # print 'corrected: ', new_actions
@@ -156,6 +172,10 @@ def callback(msg):
     all_Kc = det_all_k(sc, states, new_actions)
     pc = init_probs(x_size, y_size)
     pc = update_all_P(pc, all_Kc)
+    p_time_series['ts'].append(time_steps)
+    p_time_series['trial'].append(trial)
+    p_time_series['P_correction'].append(pc[target])
+    p_time_series['P_no_correction'].append(p[target])
 
     for i in range(len(log)):
         new_log[i][2] = new_actions[i]
@@ -187,6 +207,8 @@ def callback(msg):
     if trial == trials:
         df = pd.DataFrame(data = table)
         df.to_csv(sep = ',', path_or_buf='/home/sahabi/hasan/denoise/data/{}.csv'.format(name))
+        df = pd.DataFrame(data = p_time_series)
+        df.to_csv(sep = ',', path_or_buf='/home/sahabi/hasan/denoise/data/time_series_{}.csv'.format(name))
         #pygame.quit()
         rospy.signal_shutdown('Because: {}'.format(trial))
     if time_steps != steps:
@@ -196,7 +218,7 @@ def callback(msg):
 def main():
     global time_steps, steps, trials, name, pub
     trials = rospy.get_param('~trials')
-    steps = rospy.get_param('steps')
+    steps = rospy.get_param('~steps')
     name = rospy.get_param('~name')
     subs = rospy.Subscriber('log', Sim, callback)
     subs2 = rospy.Subscriber('classification', Int32, clf_callback)
@@ -206,15 +228,15 @@ def main():
 
 if __name__ == '__main__':
     trial = 1
-    record = pd.DataFrame()
-    record = record.from_csv('/home/sahabi/hasan/denoise/data/real_runs.csv')
-    record = list(record[record['trial']==trial].actions.values)
-    record.pop(0)
-    rospy.set_param('steps', len(record))
-    steps = rospy.get_param('steps')
+    #record = pd.DataFrame()
+    #record = record.from_csv('/home/sahabi/hasan/denoise/data/real_runs.csv')
+    #record = list(record[record['trial']==trial].actions.values)
+    #record.pop(0)
+    #rospy.set_param('steps', len(record))
+    
     clf_list = []
     trial = 1
-    trials = 0
+    
     lock_80 = False
     lock_90 = False
     lock_95 = False
@@ -222,14 +244,22 @@ if __name__ == '__main__':
     lock_90c = False
     lock_95c = False
     table = {'ts_80': [], 'ts_90': [], 'ts_95': [],'er_80': [], 'er_90': [], 'er_95': [],\
-     'ts_80c': [], 'ts_90c': [], 'ts_95c': [],'er_80c': [], 'er_90c': [], 'er_95c': [], 'er': []}
+     'ts_80c': [], 'ts_90c': [], 'ts_95c': [],'er_80c': [], 'er_90c': [], 'er_95c': [], 'er': [],'trial':[]}
+    image_table = {'trial':[],'original_image':[],'denoised_image':[],'states':[]}
+    p_time_series = {'ts':[],'P_correction':[],'P_no_correction':[],'trial':[]}
     rospy.init_node('subs', anonymous=True)
-    rospy.set_param('steps', len(record))
+    trials = rospy.get_param('~trials')
+    print trials
+    steps = rospy.get_param('~steps')
+    #rospy.set_param('steps', len(record))
     err = rospy.get_param('~err')
+    #err = {(0,0):0.85,(0,1):0.07,(0,2):0.07,(1,0):0.10,(1,1):0.8,(1,2):0.10,(2,0):0.09,(2,1):0.04,(2,2):0.87}
+    err = {(0,0):0.7,(0,1):0.15,(0,2):0.15,(1,0):0.15,(1,1):0.7,(1,2):0.15,(2,0):0.15,(2,1):0.15,(2,2):0.7}
+    #err = {(0,0):0.54,(0,1):0.23,(0,2):0.23,(1,0):0.23,(1,1):0.54,(1,2):0.23,(2,0):0.23,(2,1):0.23,(2,2):0.54}
     beta_param = rospy.get_param('~bp')
     denoiser = Denoiser(err, beta_param, [0,1,2])
     target = (3, 0)
-    x_size = 15
+    x_size = 10
     y_size = 1
     log = []
     target_log = []
